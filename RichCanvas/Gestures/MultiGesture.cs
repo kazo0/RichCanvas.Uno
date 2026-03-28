@@ -1,4 +1,4 @@
-﻿using System.Windows.Input;
+using Microsoft.UI.Xaml.Input;
 
 namespace RichCanvas.Gestures
 {
@@ -17,21 +17,28 @@ namespace RichCanvas.Gestures
         }
 
         /// <inheritdoc />
-        public override bool Matches(object targetElement, InputEventArgs inputEventArgs)
-        {
-            return MatchesAll(targetElement, inputEventArgs);
-        }
-
-        private bool MatchesAll(object targetElement, InputEventArgs inputEventArgs)
+        public override bool Matches(object sender, PointerRoutedEventArgs? e)
         {
             for (int i = 0; i < _gestures.Length; i++)
             {
-                if (!_gestures[i].Matches(targetElement, inputEventArgs))
+                if (!_gestures[i].Matches(sender, e))
                 {
                     return false;
                 }
             }
+            return true;
+        }
 
+        /// <inheritdoc />
+        public override bool Matches(object sender, KeyRoutedEventArgs e)
+        {
+            for (int i = 0; i < _gestures.Length; i++)
+            {
+                if (!_gestures[i].Matches(sender, e))
+                {
+                    return false;
+                }
+            }
             return true;
         }
     }

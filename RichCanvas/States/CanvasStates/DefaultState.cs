@@ -1,5 +1,5 @@
-﻿using System.Windows;
-using System.Windows.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
 
 using RichCanvas.Gestures;
 using RichCanvas.Helpers;
@@ -22,19 +22,19 @@ namespace RichCanvas.States
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseDown(MouseButtonEventArgs e)
+        public override void HandlePointerPressed(PointerRoutedEventArgs e)
         {
-            if (RichCanvasGestures.Drawing.Matches(e.Source, e)
+            if (RichCanvasGestures.Drawing.Matches(e.OriginalSource, e)
                 && Parent.CurrentDrawingIndexes.Count > 0
                 && !VisualHelper.HasScrollBarParent((DependencyObject)e.OriginalSource))
             {
                 PushState(new DrawingState(Parent));
             }
-            else if (RichCanvasGestures.Pan.Matches(e.Source, e))
+            else if (RichCanvasGestures.Pan.Matches(e.OriginalSource, e))
             {
                 PushState(new PanningState(Parent));
             }
-            else if (RichCanvasGestures.Select.Matches(e.Source, e))
+            else if (RichCanvasGestures.Select.Matches(e.OriginalSource, e))
             {
                 if (Parent.CanSelectMultipleItems)
                 {
@@ -48,9 +48,9 @@ namespace RichCanvas.States
         }
 
         /// <inheritdoc/>
-        public override bool MatchesPreviewMouseDownState(MouseButtonEventArgs e, out CanvasState? matchingState)
+        public override bool MatchesPreviewPointerPressedState(PointerRoutedEventArgs e, out CanvasState? matchingState)
         {
-            if (RichCanvasGestures.Pan.Matches(e.Source, e))
+            if (RichCanvasGestures.Pan.Matches(e.OriginalSource, e))
             {
                 matchingState = new PanningState(Parent);
                 return true;

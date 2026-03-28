@@ -1,116 +1,128 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Media;
+using System;
+using Windows.Foundation;
+using Microsoft.UI.Xaml.Controls;
 
 namespace RichCanvas
 {
     /// <summary>
-    /// Grid defining scrolling functionalty
+    /// Defines scrolling functionality for <see cref="RichCanvas"/>.
     /// </summary>
-    public partial class RichCanvas : IScrollInfo
+    /// <remarks>
+    /// [WPF Migration] WPF's IScrollInfo interface is not available in WinUI/Uno.
+    /// The scrolling logic has been preserved as public methods on the RichCanvas class.
+    /// The extent/offset/viewport tracking is done internally.
+    /// ScrollViewer interaction is handled via the ViewportLocation property instead of IScrollInfo callbacks.
+    /// </remarks>
+    public partial class RichCanvas
     {
         #region Private Fields
 
-        private Vector _offset;
-        private Size _extent;
+        private double _offsetX;
+        private double _offsetY;
+        private double _extentWidth;
+        private double _extentHeight;
         private Point? _viewportLocationBeforeScrolling;
         private bool _isScrolling;
 
         #endregion Private Fields
 
-        #region IScrollInfo
+        #region Scroll Properties
 
-        internal IScrollInfo ScrollInfo => this;
+        /// <summary>
+        /// Gets the total height of the scrollable content.
+        /// </summary>
+        public double ExtentHeight => _extentHeight;
 
-        /// <inheritdoc/>
-        public bool CanHorizontallyScroll { get; set; }
+        /// <summary>
+        /// Gets the total width of the scrollable content.
+        /// </summary>
+        public double ExtentWidth => _extentWidth;
 
-        /// <inheritdoc/>
-        public bool CanVerticallyScroll { get; set; }
+        /// <summary>
+        /// Gets the current horizontal scroll offset.
+        /// </summary>
+        public double HorizontalOffset => _offsetX;
 
-        /// <inheritdoc/>
-        public double ExtentHeight => _extent.Height;
+        /// <summary>
+        /// Gets the current vertical scroll offset.
+        /// </summary>
+        public double VerticalOffset => _offsetY;
 
-        /// <inheritdoc/>
-        public double ExtentWidth => _extent.Width;
-
-        /// <inheritdoc/>
-        public double HorizontalOffset => _offset.X;
-
-        /// <inheritdoc/>
-        public ScrollViewer? ScrollOwner { get; set; }
-
-        /// <inheritdoc/>
-        public double VerticalOffset => _offset.Y;
-
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the viewport height.
+        /// </summary>
         public double ViewportHeight => ViewportSize.Height;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the viewport width.
+        /// </summary>
         public double ViewportWidth => ViewportSize.Width;
 
-        /// <inheritdoc/>
-        public void LineDown() => ViewportLocation += new Vector(0, ScrollFactor);
+        #endregion Scroll Properties
 
-        /// <inheritdoc/>
-        public void LineLeft() => ViewportLocation -= new Vector(ScrollFactor, 0);
+        #region Scroll Methods
 
-        /// <inheritdoc/>
-        public void LineRight() => ViewportLocation += new Vector(ScrollFactor, 0);
-
-        /// <inheritdoc/>
-        public void LineUp() => ViewportLocation -= new Vector(0, ScrollFactor);
-
-        /// <inheritdoc/>
-        public Rect MakeVisible(Visual visual, Rect rectangle)
+        /// <summary>Scrolls down by the <see cref="ScrollFactor"/>.</summary>
+        public void LineDown()
         {
-            // TODO: Implement MakeVisible logic for next releases
-            return rectangle;
+            ViewportLocation = new Point(ViewportLocation.X, ViewportLocation.Y + ScrollFactor);
         }
 
-        /// <inheritdoc/>
-        public void MouseWheelDown() => LineDown();
+        /// <summary>Scrolls left by the <see cref="ScrollFactor"/>.</summary>
+        public void LineLeft()
+        {
+            ViewportLocation = new Point(ViewportLocation.X - ScrollFactor, ViewportLocation.Y);
+        }
 
-        /// <inheritdoc/>
-        public void MouseWheelLeft() => LineLeft();
+        /// <summary>Scrolls right by the <see cref="ScrollFactor"/>.</summary>
+        public void LineRight()
+        {
+            ViewportLocation = new Point(ViewportLocation.X + ScrollFactor, ViewportLocation.Y);
+        }
 
-        /// <inheritdoc/>
-        public void MouseWheelRight() => LineRight();
+        /// <summary>Scrolls up by the <see cref="ScrollFactor"/>.</summary>
+        public void LineUp()
+        {
+            ViewportLocation = new Point(ViewportLocation.X, ViewportLocation.Y - ScrollFactor);
+        }
 
-        /// <inheritdoc/>
-        public void MouseWheelUp() => LineUp();
-
-        /// <inheritdoc/>
+        /// <summary>Scrolls down by the viewport height.</summary>
         public void PageDown()
             => ViewportLocation = new Point(ViewportLocation.X, ViewportLocation.Y + ViewportSize.Height);
 
-        /// <inheritdoc/>
+        /// <summary>Scrolls left by the viewport width.</summary>
         public void PageLeft()
             => ViewportLocation = new Point(ViewportLocation.X - ViewportSize.Width, ViewportLocation.Y);
 
-        /// <inheritdoc/>
+        /// <summary>Scrolls right by the viewport width.</summary>
         public void PageRight()
             => ViewportLocation = new Point(ViewportLocation.X + ViewportSize.Width, ViewportLocation.Y);
 
-        /// <inheritdoc/>
+        /// <summary>Scrolls up by the viewport height.</summary>
         public void PageUp()
             => ViewportLocation = new Point(ViewportLocation.X, ViewportLocation.Y - ViewportSize.Height);
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Sets the horizontal scroll offset.
+        /// </summary>
         public void SetHorizontalOffset(double offset)
         {
-            _offset.X = offset;
+            _offsetX = offset;
             UpdateViewportLocationOnScroll();
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Sets the vertical scroll offset.
+        /// </summary>
         public void SetVerticalOffset(double offset)
         {
-            _offset.Y = offset;
+            _offsetY = offset;
             UpdateViewportLocationOnScroll();
         }
+
+        #endregion Scroll Methods
+
+        #region Internal Scroll Logic
 
         private void UpdateViewportLocationOnScroll()
         {
@@ -125,49 +137,80 @@ namespace RichCanvas
             double locationY = Math.Min(ItemsExtent.Top, _viewportLocationBeforeScrolling.Value.Y) + VerticalOffset;
             ViewportLocation = new Point(locationX, locationY);
             EnsureExtentIsUpdated();
-            ScrollOwner?.InvalidateScrollInfo();
             _isScrolling = false;
         }
 
         private void EnsureExtentIsUpdated()
         {
             Rect extentWithItems = ItemsExtent;
-            extentWithItems.Union(new Rect(ViewportLocation, ViewportSize));
-
-            Vector scrollOffset = ViewportLocation - ItemsExtent.Location;
-
-            if (_extent.Height + Math.Max(0, scrollOffset.Y) <= extentWithItems.Height)
+            if (extentWithItems.IsEmpty)
             {
-                _extent.Height = extentWithItems.Height;
+                extentWithItems = new Rect(ViewportLocation, ViewportSize);
+            }
+            else
+            {
+                extentWithItems = UnionRects(extentWithItems, new Rect(ViewportLocation, ViewportSize));
             }
 
-            if (_extent.Width + Math.Max(0, scrollOffset.X) <= extentWithItems.Width)
+            double scrollOffsetX = ViewportLocation.X - ItemsExtent.Left;
+            double scrollOffsetY = ViewportLocation.Y - ItemsExtent.Top;
+
+            if (_extentHeight + Math.Max(0, scrollOffsetY) <= extentWithItems.Height)
             {
-                _extent.Width = extentWithItems.Width;
+                _extentHeight = extentWithItems.Height;
+            }
+
+            if (_extentWidth + Math.Max(0, scrollOffsetX) <= extentWithItems.Width)
+            {
+                _extentWidth = extentWithItems.Width;
             }
         }
 
         private void UpdateScrollbars()
         {
-            // setting the ViewportLocation when manually scrolling triggers the ViewportUpdatedEvent which in turn calls this method, hence the !_isScrolling check
             if (!_isScrolling)
             {
                 _viewportLocationBeforeScrolling = null;
 
                 Rect extent = ItemsExtent;
-                extent.Union(new Rect(ViewportLocation, ViewportSize));
+                if (extent.IsEmpty)
+                {
+                    extent = new Rect(ViewportLocation, ViewportSize);
+                }
+                else
+                {
+                    extent = UnionRects(extent, new Rect(ViewportLocation, ViewportSize));
+                }
 
-                _extent.Height = extent.Height;
-                _extent.Width = extent.Width;
+                _extentHeight = extent.Height;
+                _extentWidth = extent.Width;
 
-                Vector scrollOffset = ViewportLocation - ItemsExtent.Location;
+                double scrollOffsetX = ViewportLocation.X - ItemsExtent.Left;
+                double scrollOffsetY = ViewportLocation.Y - ItemsExtent.Top;
 
-                _offset.X = Math.Max(0, scrollOffset.X);
-                _offset.Y = Math.Max(0, scrollOffset.Y);
-                ScrollOwner?.InvalidateScrollInfo();
+                _offsetX = Math.Max(0, scrollOffsetX);
+                _offsetY = Math.Max(0, scrollOffsetY);
             }
         }
 
-        #endregion IScrollInfo
+        /// <summary>
+        /// Computes the union of two rectangles.
+        /// </summary>
+        /// <remarks>
+        /// [WPF Migration] WPF Rect had a Union() instance method. WinUI Rect does not, so we compute it manually.
+        /// </remarks>
+        private static Rect UnionRects(Rect a, Rect b)
+        {
+            if (a.IsEmpty) return b;
+            if (b.IsEmpty) return a;
+
+            double left = Math.Min(a.Left, b.Left);
+            double top = Math.Min(a.Top, b.Top);
+            double right = Math.Max(a.Right, b.Right);
+            double bottom = Math.Max(a.Bottom, b.Bottom);
+            return new Rect(left, top, right - left, bottom - top);
+        }
+
+        #endregion Internal Scroll Logic
     }
 }

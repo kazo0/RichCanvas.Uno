@@ -1,7 +1,7 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
+using System;
+using Windows.Foundation;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
 
 using RichCanvas.Gestures;
 
@@ -14,7 +14,9 @@ namespace RichCanvas
         /// <summary>
         /// Identifies the <see cref="ScaleFactor"/> dependency property.
         /// </summary>
-        public static DependencyProperty ScaleFactorProperty = DependencyProperty.Register(nameof(ScaleFactor), typeof(double), typeof(RichCanvas), new FrameworkPropertyMetadata(1.1d));
+        public static readonly DependencyProperty ScaleFactorProperty = DependencyProperty.Register(
+            nameof(ScaleFactor), typeof(double), typeof(RichCanvas),
+            new PropertyMetadata(1.1d));
 
         /// <summary>
         /// Gets or sets the factor used to change <see cref="ScaleTransform"/> on zoom.
@@ -29,7 +31,9 @@ namespace RichCanvas
         /// <summary>
         /// Identifies the <see cref="DisableZoom"/> dependency property.
         /// </summary>
-        public static DependencyProperty DisableZoomProperty = DependencyProperty.Register(nameof(DisableZoom), typeof(bool), typeof(RichCanvas), new FrameworkPropertyMetadata(false));
+        public static readonly DependencyProperty DisableZoomProperty = DependencyProperty.Register(
+            nameof(DisableZoom), typeof(bool), typeof(RichCanvas),
+            new PropertyMetadata(false));
 
         /// <summary>
         /// Gets or sets whether zooming operation is disabled.
@@ -44,7 +48,9 @@ namespace RichCanvas
         /// <summary>
         /// Identifies the <see cref="MaxScale"/> dependency property.
         /// </summary>
-        public static DependencyProperty MaxScaleProperty = DependencyProperty.Register(nameof(MaxScale), typeof(double), typeof(RichCanvas), new FrameworkPropertyMetadata(2d, OnMaxScaleChanged, CoerceMaxScale));
+        public static readonly DependencyProperty MaxScaleProperty = DependencyProperty.Register(
+            nameof(MaxScale), typeof(double), typeof(RichCanvas),
+            new PropertyMetadata(2d, OnMaxScaleChanged));
 
         /// <summary>
         /// Gets or sets maximum scale for <see cref="ScaleTransform"/>.
@@ -56,24 +62,26 @@ namespace RichCanvas
             set => SetValue(MaxScaleProperty, value);
         }
 
-        private static object CoerceMaxScale(DependencyObject d, object value)
-        {
-            var zoom = (RichCanvas)d;
-            double min = zoom.MinScale;
-
-            return (double)value < min ? 2d : value;
-        }
-
         private static void OnMaxScaleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var zoom = (RichCanvas)d;
-            zoom.CoerceValue(ViewportZoomProperty);
+            double newMax = (double)e.NewValue;
+            // Coerce: max must be >= min
+            if (newMax < zoom.MinScale)
+            {
+                zoom.MaxScale = 2d;
+                return;
+            }
+            // Coerce ViewportZoom to be within range
+            zoom.CoerceViewportZoom();
         }
 
         /// <summary>
         /// Identifies the <see cref="MinScale"/> dependency property.
         /// </summary>
-        public static DependencyProperty MinScaleProperty = DependencyProperty.Register(nameof(MinScale), typeof(double), typeof(RichCanvas), new FrameworkPropertyMetadata(0.1d, OnMinimumScaleChanged, CoerceMinimumScale));
+        public static readonly DependencyProperty MinScaleProperty = DependencyProperty.Register(
+            nameof(MinScale), typeof(double), typeof(RichCanvas),
+            new PropertyMetadata(0.1d, OnMinimumScaleChanged));
 
         /// <summary>
         /// Gets or sets minimum scale for <see cref="RichCanvas.ScaleTransform"/>.
@@ -88,17 +96,27 @@ namespace RichCanvas
         private static void OnMinimumScaleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var zoom = (RichCanvas)d;
-            zoom.CoerceValue(MaxScaleProperty);
-            zoom.CoerceValue(ViewportZoomProperty);
+            double newMin = (double)e.NewValue;
+            // Coerce: min must be > 0
+            if (newMin <= 0)
+            {
+                zoom.MinScale = 0.1d;
+                return;
+            }
+            // Coerce MaxScale if needed
+            if (zoom.MaxScale < newMin)
+            {
+                zoom.MaxScale = 2d;
+            }
+            zoom.CoerceViewportZoom();
         }
-
-        private static object CoerceMinimumScale(DependencyObject d, object value)
-            => (double)value > 0 ? value : 0.1d;
 
         /// <summary>
         /// Identifies the <see cref="ViewportZoom"/> dependency property.
         /// </summary>
-        public static DependencyProperty ViewportZoomProperty = DependencyProperty.Register(nameof(ViewportZoom), typeof(double), typeof(RichCanvas), new FrameworkPropertyMetadata(1d, OnViewportZoomChanged, CoerceViewportZoom));
+        public static readonly DependencyProperty ViewportZoomProperty = DependencyProperty.Register(
+            nameof(ViewportZoom), typeof(double), typeof(RichCanvas),
+            new PropertyMetadata(1d, OnViewportZoomChanged));
 
         /// <summary>
         /// Gets or sets the current <see cref="RichCanvas.ScaleTransform"/> value.
@@ -110,60 +128,60 @@ namespace RichCanvas
             set => SetValue(ViewportZoomProperty, value);
         }
 
-        private static void OnViewportZoomChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((RichCanvas)d).OverrideScale((double)e.NewValue);
-
-        private static object CoerceViewportZoom(DependencyObject d, object value)
+        private static void OnViewportZoomChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var itemsControl = (RichCanvas)d;
+            var canvas = (RichCanvas)d;
+            double newValue = (double)e.NewValue;
 
-            if (itemsControl.DisableZoom)
+            // Coerce within range
+            if (canvas.DisableZoom)
             {
-                return itemsControl.ViewportZoom;
+                double oldValue = (double)e.OldValue;
+                if (Math.Abs(newValue - oldValue) > 0.0001)
+                {
+                    canvas.ViewportZoom = oldValue;
+                    return;
+                }
             }
 
-            double num = (double)value;
-            double minimum = itemsControl.MinScale;
-            if (num < minimum)
+            if (newValue < canvas.MinScale)
             {
-                return minimum;
+                canvas.ViewportZoom = canvas.MinScale;
+                return;
+            }
+            if (newValue > canvas.MaxScale)
+            {
+                canvas.ViewportZoom = canvas.MaxScale;
+                return;
             }
 
-            double maximum = itemsControl.MaxScale;
-            if (num > maximum)
-            {
-                return maximum;
-            }
-
-            return value;
+            canvas.OverrideScale(newValue);
         }
 
         /// <summary>
-        /// Identifies the <see cref="Zooming"/> routed event.
+        /// Occurs whenever <see cref="RichCanvas"/> is zoomed in or out.
         /// </summary>
-        public static readonly RoutedEvent ZoomingEvent = EventManager.RegisterRoutedEvent(nameof(Zooming), RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(RichCanvas));
-
-        /// <summary>
-        /// Occurs whenever <see cref="RichCanvas"/> is zooomed in or out.
-        /// </summary>
-        public event RoutedEventHandler Zooming
-        {
-            add { AddHandler(ZoomingEvent, value); }
-            remove { RemoveHandler(ZoomingEvent, value); }
-        }
+        /// <remarks>
+        /// [WPF Migration] Was a RoutedEvent. Now a CLR event.
+        /// </remarks>
+        public event EventHandler<Point>? Zooming;
 
         #endregion Dependency Properties
 
         /// <inheritdoc/>
-        protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
+        protected override void OnPointerWheelChanged(PointerRoutedEventArgs e)
         {
-            if (RichCanvasGestures.ZoomModifierKey == Keyboard.Modifiers)
+            // [WPF Migration] WPF used OnPreviewMouseWheel with Keyboard.Modifiers.
+            // WinUI uses OnPointerWheelChanged with e.KeyModifiers.
+            var keyModifiers = InputHelper.GetCurrentModifiers();
+            if (RichCanvasGestures.ZoomModifierKey == keyModifiers)
             {
-                Point position = e.GetPosition(ItemsHost);
+                Point position = e.GetCurrentPoint(ItemsHost).Position;
                 IsZooming = true;
-                double scaleFactor = e.Delta > 0 ? ScaleFactor : 1 / ScaleFactor;
+                int delta = e.GetCurrentPoint(null).Properties.MouseWheelDelta;
+                double scaleFactor = delta > 0 ? ScaleFactor : 1 / ScaleFactor;
                 ZoomAtPosition(position, scaleFactor);
                 IsZooming = false;
-                // handle the event so it won't trigger scrolling
                 e.Handled = true;
             }
         }
@@ -177,21 +195,23 @@ namespace RichCanvas
         {
             if (!DisableZoom)
             {
-                Point previouslyTransformedMousePosition = AppliedTransform.Transform(mousePosition);
+                Point previouslyTransformedMousePosition = AppliedTransform.TransformPoint(mousePosition);
 
                 double previousZoom = ViewportZoom;
                 ViewportZoom *= delta;
 
                 if (Math.Abs(previousZoom - ViewportZoom) > 0.001)
                 {
-                    Point transformedMousePositionAfterScaling = AppliedTransform.Transform(mousePosition);
+                    Point transformedMousePositionAfterScaling = AppliedTransform.TransformPoint(mousePosition);
 
-                    Vector translationAdjustment = previouslyTransformedMousePosition - transformedMousePositionAfterScaling;
-                    Point newTranslation = new Point(TranslateTransform.X, TranslateTransform.Y) + translationAdjustment;
+                    double adjX = previouslyTransformedMousePosition.X - transformedMousePositionAfterScaling.X;
+                    double adjY = previouslyTransformedMousePosition.Y - transformedMousePositionAfterScaling.Y;
+                    Point newTranslation = new Point(TranslateTransform.X + adjX, TranslateTransform.Y + adjY);
 
-                    Vector viewportLocation = (new Vector(0, 0) - (Vector)newTranslation) / ViewportZoom;
+                    double viewportX = -newTranslation.X / ViewportZoom;
+                    double viewportY = -newTranslation.Y / ViewportZoom;
 
-                    ViewportLocation = (Point)viewportLocation;
+                    ViewportLocation = new Point(viewportX, viewportY);
                 }
             }
         }
@@ -210,12 +230,30 @@ namespace RichCanvas
         {
             ScaleTransform.ScaleX = zoom;
             ScaleTransform.ScaleY = zoom;
-            var zoomEventArgs = new RoutedEventArgs(ZoomingEvent, new Point(ScaleTransform.ScaleX, ScaleTransform.ScaleY));
-            RaiseEvent(zoomEventArgs);
+            Zooming?.Invoke(this, new Point(ScaleTransform.ScaleX, ScaleTransform.ScaleY));
 
             ViewportSize = new Size(ActualWidth / ViewportZoom, ActualHeight / ViewportZoom);
 
             UpdateScrollbars();
+        }
+
+        /// <summary>
+        /// Coerces the ViewportZoom value to be within MinScale..MaxScale range.
+        /// </summary>
+        /// <remarks>
+        /// [WPF Migration] Replaces WPF's CoerceValueCallback on the ViewportZoom DP.
+        /// </remarks>
+        private void CoerceViewportZoom()
+        {
+            double current = ViewportZoom;
+            if (current < MinScale)
+            {
+                ViewportZoom = MinScale;
+            }
+            else if (current > MaxScale)
+            {
+                ViewportZoom = MaxScale;
+            }
         }
     }
 }

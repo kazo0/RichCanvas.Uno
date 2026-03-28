@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
+using Windows.Foundation;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+
+using RichCanvas.Gestures;
 
 namespace RichCanvas.States
 {
@@ -11,7 +13,7 @@ namespace RichCanvas.States
     /// </summary>
     public class DrawingState : CanvasState
     {
-        private RichCanvasContainer _currentDrawingContainer;
+        private RichCanvasContainer _currentDrawingContainer = null!;
         private bool _isDrawing;
 
         /// <summary>
@@ -32,8 +34,8 @@ namespace RichCanvas.States
             }
 
             int currentDrawingContainerIndex = drawingContainersIndexes[0];
-            RichCanvasContainer container = (RichCanvasContainer)Parent.ItemContainerGenerator.ContainerFromIndex(currentDrawingContainerIndex);
-            if (container.IsValid())
+            RichCanvasContainer? container = Parent.ContainerFromIndex(currentDrawingContainerIndex);
+            if (container == null || container.IsValid())
             {
                 drawingContainersIndexes.RemoveAt(0);
                 return;
@@ -42,7 +44,7 @@ namespace RichCanvas.States
             _currentDrawingContainer = container;
             _isDrawing = true;
 
-            Point mousePosition = Mouse.GetPosition(Parent.ItemsHost);
+            Point mousePosition = Parent.MousePosition;
             if (!_currentDrawingContainer.TopPropertyInitalized)
             {
                 _currentDrawingContainer.Top = mousePosition.Y;
@@ -57,19 +59,19 @@ namespace RichCanvas.States
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseMove(MouseEventArgs e)
+        public override void HandlePointerMoved(PointerRoutedEventArgs e)
         {
             if (!_isDrawing)
             {
                 return;
             }
 
-            Point mousePosition = e.GetPosition(Parent.ItemsHost);
+            Point mousePosition = e.GetCurrentPoint(Parent.ItemsHost).Position;
             DrawContainer(mousePosition);
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseUp(MouseButtonEventArgs e)
+        public override void HandlePointerReleased(PointerRoutedEventArgs e)
         {
             if (!_isDrawing)
             {
@@ -86,7 +88,7 @@ namespace RichCanvas.States
             }
             _currentDrawingContainer.Scale = new Point(_currentDrawingContainer.ScaleTransform?.ScaleX ?? 1, _currentDrawingContainer.ScaleTransform?.ScaleY ?? 1);
 
-            Point mousePosition = e.GetPosition(Parent.ItemsHost);
+            Point mousePosition = e.GetCurrentPoint(Parent.ItemsHost).Position;
             Parent.RaiseDrawEndedEvent(_currentDrawingContainer.DataContext, mousePosition);
             if (Parent.DrawingEndedCommand?.CanExecute(mousePosition) ?? false)
             {
@@ -98,9 +100,9 @@ namespace RichCanvas.States
         }
 
         /// <inheritdoc/>
-        public override void HandleAutoPanning(MouseEventArgs e)
+        public override void HandleAutoPanning(PointerRoutedEventArgs? e)
         {
-            Point mousePosition = e.GetPosition(Parent.ItemsHost);
+            Point mousePosition = Parent.MousePosition;
             _currentDrawingContainer.Height = Math.Abs(mousePosition.Y - _currentDrawingContainer.Top);
             _currentDrawingContainer.Width = Math.Abs(mousePosition.X - _currentDrawingContainer.Left);
         }
@@ -137,8 +139,6 @@ namespace RichCanvas.States
             }
         }
 
-        // ScaleTransform is used, because drawing involves anything that the User adds inside the ContentPresenter
-        // so we can't change the position while drawing, therefore we need to keep the scaling to display correctly OnMouseUp.
         private void UpdateItemPositionByScale()
         {
             ScaleTransform? scaleTransformItem = _currentDrawingContainer.ScaleTransform;

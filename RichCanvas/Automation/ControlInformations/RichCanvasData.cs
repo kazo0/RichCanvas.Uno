@@ -1,10 +1,13 @@
-﻿using System.Windows;
+using Windows.Foundation;
 
 namespace RichCanvas.Automation.ControlInformations
 {
     /// <summary>
-    /// Data transfer object exposing <see cref="RichCanvas"/> information to UI Automation proejct.
+    /// Data transfer object exposing <see cref="RichCanvas"/> information to UI Automation.
     /// </summary>
+    /// <remarks>
+    /// [WPF Migration] System.Windows types replaced with Windows.Foundation types (Point, Size, Rect).
+    /// </remarks>
     public class RichCanvasData
     {
         /// <summary>

@@ -1,6 +1,10 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:RichCanvas">
+                    xmlns:local="using:RichCanvas"
+                    xmlns:converters="using:RichCanvas.Converters">
+
+    <converters:BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+
     <Style x:Key="SelectionRectangleStyle"
            TargetType="Rectangle">
         <Setter Property="Stroke"
@@ -15,27 +19,43 @@
         </Setter>
     </Style>
 
-    <Style TargetType="{x:Type local:RichCanvas}">
-        <Style.Resources>
-            <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-        </Style.Resources>
-
+    <!--
+    [WPF Migration] Key changes:
+    - {x:Type} replaced with direct type references
+    - BooleanToVisibilityConverter is now a custom converter (WPF had built-in)
+    - IsItemsHost="True" replaced with ItemsPresenter + ItemsPanel template
+    - pack:// URIs replaced with ms-appx:///
+    - clr-namespace replaced with using:
+    - OneWayToSource binding on Extent removed (WinUI does not support OneWayToSource);
+      the panel Extent is synced via PropertyChanged callback in code-behind
+    - Style.Resources moved to top-level ResourceDictionary
+    - The template now uses an ItemsPresenter instead of placing the panel directly,
+      with the ItemsPanel property set to RichCanvasPanel in the control's constructor.
+    - PART_Panel is found by walking the visual tree to the ItemsPresenter's child.
+    -->
+    <Style TargetType="local:RichCanvas">
         <Setter Property="SelectionRectangleStyle"
                 Value="{StaticResource SelectionRectangleStyle}" />
+        <Setter Property="IsTabStop"
+                Value="True" />
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <local:RichCanvasPanel x:Name="PART_Panel" />
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
 
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="{x:Type local:RichCanvas}">
+                <ControlTemplate TargetType="local:RichCanvas">
                     <Border Background="{TemplateBinding Background}">
-                        <Canvas RenderTransform="{Binding AppliedTransform, RelativeSource={RelativeSource TemplatedParent}}"
-                                x:Name="containerDrawing">
+                        <Canvas RenderTransform="{Binding AppliedTransform, RelativeSource={RelativeSource TemplatedParent}}">
 
-                            <local:RichCanvasPanel x:Name="PART_Panel"
-                                                   IsItemsHost="True"
-                                                   Extent="{Binding ItemsExtent, Mode=OneWayToSource, RelativeSource={RelativeSource TemplatedParent}}" />
+                            <ItemsPresenter x:Name="PART_ItemsPresenter" />
 
                             <Rectangle x:Name="PART_SelectionRectangle"
-                                       Visibility="{TemplateBinding IsSelecting, Converter={StaticResource BoolToVisConverter}}"
+                                       Visibility="{Binding IsSelecting, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToVisConverter}}"
                                        Canvas.Top="{Binding SelectionRectangle.Y, RelativeSource={RelativeSource TemplatedParent}}"
                                        Canvas.Left="{Binding SelectionRectangle.X, RelativeSource={RelativeSource TemplatedParent}}"
                                        Width="{Binding SelectionRectangle.Width, RelativeSource={RelativeSource TemplatedParent}}"

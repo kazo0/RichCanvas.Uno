@@ -1,8 +1,11 @@
-﻿using System.Windows.Input;
+using Microsoft.UI.Xaml.Input;
 
 namespace RichCanvas.States.ContainerStates
 {
     /// <summary>The base class for <see cref="RichCanvasContainer"/> states.</summary>
+    /// <remarks>
+    /// [WPF Migration] Mouse events replaced with Pointer events (PointerRoutedEventArgs).
+    /// </remarks>
     public abstract class ContainerState
     {
         /// <summary>The owner of the state.</summary>
@@ -18,16 +21,12 @@ namespace RichCanvas.States.ContainerStates
         }
 
         /// <summary>
-        /// Called whenever <see cref="RichCanvasContainer.PushState(ContainerState)"/> is called (becomes the <see cref="RichCanvasContainer.CurrentState"/>).
-        /// <br />
-        /// Note: <i>Used to initialize the State before any input is processed by it.</i>
+        /// Called whenever <see cref="RichCanvasContainer.PushState(ContainerState)"/> is called.
         /// </summary>
         public virtual void Enter() { }
 
         /// <summary>
-        /// Called whenever <see cref="RichCanvasContainer.PopState()"/> is called.
-        /// <br />
-        /// Note: <i>Used whenever a state switch happens in order to update the state which was suspended.</i>
+        /// Called whenever <see cref="RichCanvasContainer.PopState()"/> is called for re-entry.
         /// </summary>
         public virtual void ReEnter() { }
 
@@ -36,14 +35,14 @@ namespace RichCanvas.States.ContainerStates
         /// </summary>
         public virtual void Exit() { }
 
-        /// <inheritdoc cref="RichCanvasContainer.OnMouseDown(MouseButtonEventArgs)"/>
-        public virtual void HandleMouseDown(MouseButtonEventArgs e) { }
+        /// <summary>Handles pointer pressed events.</summary>
+        public virtual void HandlePointerPressed(PointerRoutedEventArgs e) { }
 
-        /// <inheritdoc cref="RichCanvasContainer.OnMouseMove(MouseEventArgs)"/>
-        public virtual void HandleMouseMove(MouseEventArgs e) { }
+        /// <summary>Handles pointer move events.</summary>
+        public virtual void HandlePointerMoved(PointerRoutedEventArgs e) { }
 
-        /// <inheritdoc cref="RichCanvasContainer.OnMouseUp(MouseButtonEventArgs)"/>
-        public virtual void HandleMouseUp(MouseButtonEventArgs e) { }
+        /// <summary>Handles pointer released events.</summary>
+        public virtual void HandlePointerReleased(PointerRoutedEventArgs e) { }
 
         /// <summary>Pushes a new state into the stack.</summary>
         /// <param name="state">The new state.</param>

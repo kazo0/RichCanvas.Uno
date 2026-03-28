@@ -1,6 +1,6 @@
-﻿using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
+using System.Collections.Generic;
+using Windows.Foundation;
+using Microsoft.UI.Xaml.Input;
 
 using RichCanvas.Gestures;
 using RichCanvas.Helpers;
@@ -10,6 +10,13 @@ namespace RichCanvas.States
     /// <summary>
     /// Defines a new state used when selecting multiple items action happens on <see cref="RichCanvas"/>.
     /// </summary>
+    /// <remarks>
+    /// [WPF Migration] Key changes:
+    /// - Mouse events replaced with Pointer events.
+    /// - Mouse.GetPosition replaced with PointerRoutedEventArgs.GetCurrentPoint().Position.
+    /// - GeometryHitTest replaced with bounds-intersection testing via HitTestHelper.
+    /// - VisualTreeHelper.HitTest with GeometryHitTestParameters not available in WinUI.
+    /// </remarks>
     public class MultipleSelectionState : CanvasState
     {
         private Point _selectionRectangleInitialPosition;
@@ -27,44 +34,45 @@ namespace RichCanvas.States
         {
             Parent.SelectionRectangle = new Rect();
             Parent.IsSelecting = true;
-            _selectionRectangleInitialPosition = Mouse.GetPosition(Parent.ItemsHost);
+            _selectionRectangleInitialPosition = Parent.MousePosition;
             Parent.UnselectAll();
         }
 
         /// <inheritdoc/>
         public override void ReEnter()
         {
-            Parent.SelectionRectangle = SelectionHelper.DrawSelectionRectangle(Mouse.GetPosition(Parent.ItemsHost), _selectionRectangleInitialPosition);
+            Parent.SelectionRectangle = SelectionHelper.DrawSelectionRectangle(Parent.MousePosition, _selectionRectangleInitialPosition);
             SelectItems();
         }
 
         /// <inheritdoc/>
-        public override void HandleKeyDown(KeyEventArgs e)
+        public override void HandleKeyDown(KeyRoutedEventArgs e)
         {
-            if (RichCanvasGestures.Pan.Matches(e.Source, e))
+            if (RichCanvasGestures.Pan.Matches(e.OriginalSource, e))
             {
                 PushState(new PanningState(Parent));
             }
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseDown(MouseButtonEventArgs e)
+        public override void HandlePointerPressed(PointerRoutedEventArgs e)
         {
-            if (RichCanvasGestures.Pan.Matches(e.Source, e))
+            if (RichCanvasGestures.Pan.Matches(e.OriginalSource, e))
             {
                 PushState(new PanningState(Parent));
             }
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseMove(MouseEventArgs e)
+        public override void HandlePointerMoved(PointerRoutedEventArgs e)
         {
             if (!Parent.IsSelecting)
             {
                 return;
             }
 
-            Parent.SelectionRectangle = SelectionHelper.DrawSelectionRectangle(e.GetPosition(Parent.ItemsHost), _selectionRectangleInitialPosition);
+            Point position = e.GetCurrentPoint(Parent.ItemsHost).Position;
+            Parent.SelectionRectangle = SelectionHelper.DrawSelectionRectangle(position, _selectionRectangleInitialPosition);
 
             if (Parent.RealTimeSelectionEnabled)
             {
@@ -73,7 +81,7 @@ namespace RichCanvas.States
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseUp(MouseButtonEventArgs e)
+        public override void HandlePointerReleased(PointerRoutedEventArgs e)
         {
             if (!Parent.IsSelecting)
             {
@@ -88,34 +96,36 @@ namespace RichCanvas.States
         }
 
         /// <inheritdoc/>
-        public override void HandleAutoPanning(MouseEventArgs e) => HandleMouseMove(e);
+        public override void HandleAutoPanning(PointerRoutedEventArgs? e) => HandleAutoPanningInternal();
+
+        private void HandleAutoPanningInternal()
+        {
+            if (!Parent.IsSelecting) return;
+            Parent.SelectionRectangle = SelectionHelper.DrawSelectionRectangle(Parent.MousePosition, _selectionRectangleInitialPosition);
+            if (Parent.RealTimeSelectionEnabled)
+            {
+                SelectItems();
+            }
+        }
 
         private void SelectItems()
         {
             Parent.UnselectAll();
-            var geom = new RectangleGeometry(Parent.SelectionRectangle);
+
+            List<RichCanvasContainer> containers = HitTestHelper.FindContainersInArea(Parent.ItemsHost, Parent.SelectionRectangle);
 
             Parent.BeginSelectionTransaction();
 
-            VisualTreeHelper.HitTest(Parent.ItemsHost, null,
-                new HitTestResultCallback(OnHitTestResultCallback),
-                new GeometryHitTestParameters(geom));
-
-            Parent.EndSelectionTransaction();
-        }
-
-        private HitTestResultBehavior OnHitTestResultCallback(HitTestResult result)
-        {
-            var geometryHitTestResult = (GeometryHitTestResult)result;
-            if (geometryHitTestResult.VisualHit.DependencyObjectType.SystemType != typeof(RichCanvasContainer) && geometryHitTestResult.IntersectionDetail != IntersectionDetail.Empty)
+            for (int i = 0; i < containers.Count; i++)
             {
-                RichCanvasContainer container = VisualHelper.GetParentContainer(geometryHitTestResult.VisualHit);
-                if (container != null && container.IsSelectable)
+                RichCanvasContainer container = containers[i];
+                if (container.IsSelectable)
                 {
-                    Parent.BaseSelectedItems.Add(container.DataContext);
+                    Parent.InternalSelectedItems.Add(container.DataContext);
                 }
             }
-            return HitTestResultBehavior.Continue;
+
+            Parent.EndSelectionTransaction();
         }
     }
 }

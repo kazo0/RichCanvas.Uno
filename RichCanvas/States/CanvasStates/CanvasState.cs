@@ -1,8 +1,12 @@
-﻿using System.Windows.Input;
+using Microsoft.UI.Xaml.Input;
 
 namespace RichCanvas.States
 {
     /// <summary>The base class for <see cref="RichCanvas"/> states.</summary>
+    /// <remarks>
+    /// [WPF Migration] All Mouse*EventArgs replaced with PointerRoutedEventArgs.
+    /// KeyEventArgs replaced with KeyRoutedEventArgs.
+    /// </remarks>
     public abstract class CanvasState
     {
         /// <summary>The owner of the state.</summary>
@@ -36,23 +40,23 @@ namespace RichCanvas.States
         /// </summary>
         public virtual void Exit() { }
 
-        /// <inheritdoc cref="RichCanvas.OnMouseDown(MouseButtonEventArgs)"/>
-        public virtual void HandleMouseDown(MouseButtonEventArgs e) { }
+        /// <summary>Handles pointer pressed events.</summary>
+        public virtual void HandlePointerPressed(PointerRoutedEventArgs e) { }
 
-        /// <inheritdoc cref="RichCanvas.OnMouseMove(MouseEventArgs)"/>
-        public virtual void HandleMouseMove(MouseEventArgs e) { }
+        /// <summary>Handles pointer move events.</summary>
+        public virtual void HandlePointerMoved(PointerRoutedEventArgs e) { }
 
-        /// <inheritdoc cref="RichCanvas.OnMouseUp(MouseButtonEventArgs)"/>
-        public virtual void HandleMouseUp(MouseButtonEventArgs e) { }
+        /// <summary>Handles pointer released events.</summary>
+        public virtual void HandlePointerReleased(PointerRoutedEventArgs e) { }
 
-        /// <inheritdoc cref="RichCanvas.OnKeyDown(KeyEventArgs)"/>
-        public virtual void HandleKeyDown(KeyEventArgs e) { }
+        /// <summary>Handles key down events.</summary>
+        public virtual void HandleKeyDown(KeyRoutedEventArgs e) { }
 
-        /// <inheritdoc cref="RichCanvas.OnKeyUp(KeyEventArgs)"/>
-        public virtual void HandleKeyUp(KeyEventArgs e) { }
+        /// <summary>Handles key up events.</summary>
+        public virtual void HandleKeyUp(KeyRoutedEventArgs e) { }
 
         /// <summary>Handles auto panning when mouse is outside the canvas.</summary>
-        public virtual void HandleAutoPanning(MouseEventArgs e) { }
+        public virtual void HandleAutoPanning(PointerRoutedEventArgs? e) { }
 
         /// <summary>Pushes a new state into the stack.</summary>
         /// <param name="state">The new state.</param>
@@ -62,12 +66,13 @@ namespace RichCanvas.States
         public virtual void PopState() => Parent.PopState();
 
         /// <summary>
-        /// Called by <see cref="RichCanvas.OnPreviewMouseDown(MouseButtonEventArgs)"/> to check if any state has priority over other controls handling MouseDown event.
+        /// Called by RichCanvas.OnPointerPressed to check if any state has priority over other controls handling the event.
         /// </summary>
-        /// <param name="e"></param>
-        /// <param name="matchingState"></param>
-        /// <returns></returns>
-        public virtual bool MatchesPreviewMouseDownState(MouseButtonEventArgs e, out CanvasState? matchingState)
+        /// <remarks>
+        /// [WPF Migration] Replaces MatchesPreviewMouseDownState. WPF's PreviewMouseDown (tunneling) is not available in WinUI.
+        /// This method is now called before the normal pointer pressed handling to provide the same priority behavior.
+        /// </remarks>
+        public virtual bool MatchesPreviewPointerPressedState(PointerRoutedEventArgs e, out CanvasState? matchingState)
         {
             matchingState = null;
             return false;

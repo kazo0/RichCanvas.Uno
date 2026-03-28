@@ -1,5 +1,5 @@
-﻿using System.Windows;
-using System.Windows.Input;
+using Windows.Foundation;
+using Microsoft.UI.Xaml.Input;
 
 namespace RichCanvas.States.ContainerStates
 {
@@ -23,7 +23,7 @@ namespace RichCanvas.States.ContainerStates
         /// <inheritdoc/>
         public override void Enter()
         {
-            _initialPosition = Mouse.GetPosition(Container.Host.ItemsHost);
+            _initialPosition = Container.Host.MousePosition;
             if (Container.IsSelectable)
             {
                 if (Container.Host.CanSelectMultipleItems)
@@ -41,13 +41,14 @@ namespace RichCanvas.States.ContainerStates
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseMove(MouseEventArgs e)
+        public override void HandlePointerMoved(PointerRoutedEventArgs e)
         {
-            Point currentPosition = e.GetPosition(Container.Host.ItemsHost);
-            Vector offset = currentPosition - _initialPosition;
-            if (offset.X != 0 || offset.Y != 0)
+            Point currentPosition = e.GetCurrentPoint(Container.Host.ItemsHost).Position;
+            double offsetX = currentPosition.X - _initialPosition.X;
+            double offsetY = currentPosition.Y - _initialPosition.Y;
+            if (offsetX != 0 || offsetY != 0)
             {
-                var offsetPoint = new Point(offset.X, offset.Y);
+                var offsetPoint = new Point(offsetX, offsetY);
                 DraggingStrategy.OnItemsDragDelta(offsetPoint);
                 Container.RaiseDragDeltaEvent(offsetPoint);
 
@@ -56,11 +57,11 @@ namespace RichCanvas.States.ContainerStates
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseUp(MouseButtonEventArgs e)
+        public override void HandlePointerReleased(PointerRoutedEventArgs e)
         {
             DraggingStrategy.OnItemsDragCompleted();
             Container.Host.IsDragging = false;
-            Container.RaiseDragCompletedEvent(e.GetPosition(Container.Host.ItemsHost));
+            Container.RaiseDragCompletedEvent(e.GetCurrentPoint(Container.Host.ItemsHost).Position);
         }
     }
 }

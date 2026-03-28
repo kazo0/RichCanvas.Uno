@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Media;
+using Windows.Foundation;
+using Microsoft.UI.Xaml.Media;
 
 namespace RichCanvas.States.ContainerStates
 {
@@ -16,7 +16,7 @@ namespace RichCanvas.States.ContainerStates
 
         internal override void OnItemsDragStarted()
         {
-            IList selectedItems = Parent.BaseSelectedItems;
+            IList selectedItems = Parent.InternalSelectedItems;
 
             if (selectedItems.Count > 0)
             {
@@ -35,8 +35,8 @@ namespace RichCanvas.States.ContainerStates
                 // Cache selected containers
                 for (int i = 0; i < selectedItems.Count; i++)
                 {
-                    var container = (RichCanvasContainer)Parent.ItemContainerGenerator.ContainerFromItem(selectedItems[i]);
-                    if (container.IsDraggable)
+                    var container = Parent.ContainerFromItem(selectedItems[i]!);
+                    if (container != null && container.IsDraggable)
                     {
                         _draggableContainers.Add(container);
                     }

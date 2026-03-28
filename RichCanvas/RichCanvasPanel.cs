@@ -1,12 +1,18 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Controls;
+using System;
+using Windows.Foundation;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace RichCanvas
 {
     /// <summary>
     /// ItemsHost of <see cref="RichCanvas"/>
     /// </summary>
+    /// <remarks>
+    /// [WPF Migration] In WPF, this panel was used with IsItemsHost=True in the template.
+    /// In WinUI/Uno, the panel is set via ItemsPanel template on ItemsControl.
+    /// The panel is also referenced directly from the control template and assigned to the control via OnApplyTemplate.
+    /// </remarks>
     public class RichCanvasPanel : Panel
     {
         private RichCanvas? _itemsOwner;
@@ -20,7 +26,8 @@ namespace RichCanvas
         /// <summary>
         /// Identifies the <see cref="Extent"/> dependency property.
         /// </summary>
-        public static readonly DependencyProperty ExtentProperty = DependencyProperty.Register(nameof(Extent), typeof(Rect), typeof(RichCanvasPanel), new FrameworkPropertyMetadata(Rect.Empty));
+        public static readonly DependencyProperty ExtentProperty = DependencyProperty.Register(
+            nameof(Extent), typeof(Rect), typeof(RichCanvasPanel), new PropertyMetadata(Rect.Empty));
 
         /// <summary>The area covered by the children of this panel.</summary>
         public Rect Extent
@@ -32,15 +39,18 @@ namespace RichCanvas
         /// <inheritdoc/>
         protected override Size MeasureOverride(Size constraint)
         {
-            if (ItemsOwner != null && (ItemsOwner.IsSelecting || ItemsOwner.IsDragging))
+            if (_itemsOwner != null && (_itemsOwner.IsSelecting || _itemsOwner.IsDragging))
             {
                 return default;
             }
 
-            for (int i = 0; i < InternalChildren.Count; i++)
+            for (int i = 0; i < Children.Count; i++)
             {
-                var container = (RichCanvasContainer)InternalChildren[i];
-                container.Measure(constraint);
+                UIElement child = Children[i];
+                if (child is RichCanvasContainer container)
+                {
+                    container.Measure(constraint);
+                }
             }
 
             return default;
@@ -53,9 +63,9 @@ namespace RichCanvas
             double minY = double.MaxValue;
             double maxX = double.MinValue;
             double maxY = double.MinValue;
-            for (int i = 0; i < InternalChildren.Count; i++)
+            for (int i = 0; i < Children.Count; i++)
             {
-                UIElement child = InternalChildren[i];
+                UIElement child = Children[i];
                 if (child is RichCanvasContainer container)
                 {
                     child.Arrange(new Rect(new Point(container.Left, container.Top), child.DesiredSize));

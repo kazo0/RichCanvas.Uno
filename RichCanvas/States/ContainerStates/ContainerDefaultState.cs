@@ -1,4 +1,4 @@
-﻿using System.Windows.Input;
+using Microsoft.UI.Xaml.Input;
 
 using RichCanvas.Gestures;
 
@@ -20,9 +20,9 @@ namespace RichCanvas.States.ContainerStates
         }
 
         /// <inheritdoc/>
-        public override void HandleMouseDown(MouseButtonEventArgs e)
+        public override void HandlePointerPressed(PointerRoutedEventArgs e)
         {
-            if (RichCanvasGestures.Drag.Matches(e.Source, e) && Container.IsDraggable)
+            if (RichCanvasGestures.Drag.Matches(e.OriginalSource, e) && Container.IsDraggable)
             {
                 PushState(new DraggingContainerState(Container));
             }

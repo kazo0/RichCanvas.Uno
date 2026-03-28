@@ -1,6 +1,6 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Media;
+using System;
+using Windows.Foundation;
+using Microsoft.UI.Xaml.Media;
 
 namespace RichCanvas.States.ContainerStates
 {

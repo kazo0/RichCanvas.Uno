@@ -1,20 +1,27 @@
-﻿using System.Windows.Automation;
-using System.Windows.Automation.Peers;
-using System.Windows.Automation.Provider;
-
-using Newtonsoft.Json;
+using System.Text.Json;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
+using Windows.Foundation;
 
 using RichCanvas.Automation.ControlInformations;
 
 namespace RichCanvas.Automation
 {
     /// <summary>
-    /// Exposes the <see cref="RichCanvas"/> to UI Automation project.
+    /// Exposes the <see cref="RichCanvas"/> to UI Automation.
     /// </summary>
-    public class RichCanvasAutomationPeer : SelectorAutomationPeer,
+    /// <remarks>
+    /// [WPF Migration] Key changes:
+    /// - Base class changed from SelectorAutomationPeer to ItemsControlAutomationPeer
+    ///   since RichCanvas now inherits from ItemsControl instead of MultiSelector/Selector.
+    /// - IScrollProvider implementation simplified (no longer wraps IScrollInfo).
+    /// - Newtonsoft.Json replaced with System.Text.Json.
+    /// - CreateItemAutomationPeer replaces item-level automation.
+    /// </remarks>
+    public class RichCanvasAutomationPeer : ItemsControlAutomationPeer,
         IValueProvider,
         IScrollProvider
-    //ITransformProvider
     {
         /// <summary>
         /// Gets the <see cref="RichCanvas"/> that is associated with this <see cref="RichCanvasAutomationPeer"/>.
@@ -27,7 +34,7 @@ namespace RichCanvas.Automation
         /// <summary>
         /// Gets the serialized json value of <see cref="RichCanvasData"/> containing data about the associated <see cref="RichCanvas"/>.
         /// </summary>
-        public string Value => JsonConvert.SerializeObject(new RichCanvasData
+        public string Value => JsonSerializer.Serialize(new RichCanvasData
         {
             TranslateTransformX = OwnerRichCanvas.TranslateTransform.X,
             TranslateTransformY = OwnerRichCanvas.TranslateTransform.Y,
@@ -35,7 +42,7 @@ namespace RichCanvas.Automation
             ScrollFactor = OwnerRichCanvas.ScrollFactor,
             ViewportLocation = OwnerRichCanvas.ViewportLocation,
             ViewportSize = OwnerRichCanvas.ViewportSize,
-            ViewportExtent = new System.Windows.Size(OwnerRichCanvas.ScrollInfo.ExtentWidth, OwnerRichCanvas.ScrollInfo.ExtentHeight),
+            ViewportExtent = new Size(OwnerRichCanvas.ExtentWidth, OwnerRichCanvas.ExtentHeight),
             ViewportZoom = OwnerRichCanvas.ViewportZoom,
             ScaleFactor = OwnerRichCanvas.ScaleFactor,
             MousePosition = OwnerRichCanvas.MousePosition,
@@ -44,9 +51,7 @@ namespace RichCanvas.Automation
         });
 
         /// <summary>
-        /// <inheritdoc/>
-        /// <br/>
-        /// Returns: Always true.
+        /// Always true.
         /// </summary>
         public bool HorizontallyScrollable => true;
 
@@ -61,9 +66,7 @@ namespace RichCanvas.Automation
         public double HorizontalViewSize => OwnerRichCanvas.ViewportSize.Width;
 
         /// <summary>
-        /// <inheritdoc/>
-        /// <br/>
-        /// Returns: Always true.
+        /// Always true.
         /// </summary>
         public bool VerticallyScrollable => true;
 
@@ -80,7 +83,6 @@ namespace RichCanvas.Automation
         /// <summary>
         /// Initializes a new <see cref="RichCanvasAutomationPeer"/>.
         /// </summary>
-        /// <param name="owner"></param>
         public RichCanvasAutomationPeer(RichCanvas owner) : base(owner)
         {
         }
@@ -88,17 +90,15 @@ namespace RichCanvas.Automation
         /// <inheritdoc/>
         public void SetValue(string value)
         {
-            //TODO: maybe deserialize a json form a specific types with allowed dependency props
-            //      that are modifiable and serializable
             throw new System.NotSupportedException("This control does not allow setting the value.");
         }
 
         /// <inheritdoc/>
-        public override object GetPattern(PatternInterface patternInterface) => patternInterface switch
+        protected override object GetPatternCore(PatternInterface patternInterface) => patternInterface switch
         {
             PatternInterface.Value => this,
             PatternInterface.Scroll => this,
-            _ => base.GetPattern(patternInterface)
+            _ => base.GetPatternCore(patternInterface)
         };
 
         /// <inheritdoc/>
@@ -108,14 +108,18 @@ namespace RichCanvas.Automation
         /// <inheritdoc/>
         protected override string GetClassNameCore() => Owner.GetType().Name;
 
-        /// <inheritdoc/>
-        protected override ItemAutomationPeer CreateItemAutomationPeer(object item)
+        /// <summary>
+        /// Creates an automation peer for the specified item.
+        /// </summary>
+        /// <remarks>
+        /// [WPF Migration] In WPF, CreateItemAutomationPeer was virtual on SelectorAutomationPeer.
+        /// In Uno's ItemsControlAutomationPeer it is not virtual, so we use 'new' to provide our own.
+        /// </remarks>
+        protected new ItemAutomationPeer CreateItemAutomationPeer(object item)
             => new RichCanvasContainerAutomationPeer(item, this);
 
         /// <summary>
-        /// <inheritdoc/>
-        /// <br/>
-        /// Using <see cref="OwnerRichCanvas"/> implementation of <see cref="System.Windows.Controls.Primitives.IScrollInfo"/>.
+        /// Scrolls the canvas using the viewport location methods.
         /// </summary>
         public void Scroll(ScrollAmount horizontalAmount, ScrollAmount verticalAmount)
         {
@@ -155,7 +159,7 @@ namespace RichCanvas.Automation
         }
 
         /// <summary>
-        /// Sets the amount of vertical and horizontal offset on the <see cref="OwnerRichCanvas"/>.
+        /// Sets the amount of vertical and horizontal offset.
         /// </summary>
         public void SetScrollPercent(double horizontalPercent, double verticalPercent)
         {

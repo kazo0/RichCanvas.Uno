@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<TargetFrameworks>net9-windows;net8-windows;net6-windows;net5-windows;netcoreapp3.1;net48;net472</TargetFrameworks>
+		<TargetFrameworks>net9.0</TargetFrameworks>
 		<LangVersion>default</LangVersion>
-		<UseWPF>true</UseWPF>
+		<ImplicitUsings>disable</ImplicitUsings>
 		<Authors>Mircea Staicu</Authors>
 		<RepositoryUrl>https://github.com/mircea21S/RichCanvas</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/mircea21S/RichCanvas</PackageProjectUrl>
@@ -12,20 +12,26 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>Mircea Staicu</Copyright>
 		<PackageTags>
-			wpf mvvm canvas zooming items panning selection drawable draggable
-			infinite-canvas infinite-scrolling net-core-3-1 net-5
+			uno-platform winui canvas zooming items panning selection drawable draggable
+			infinite-canvas infinite-scrolling
 		</PackageTags>
 		<Description>
-			Enhanced WPF Canvas with panning, zooming, scrolling and other customizable functions, designed for MVVM.
+			Enhanced Canvas control for Uno Platform (WinUI) with panning, zooming, scrolling and other customizable functions, designed for MVVM.
 		</Description>
-		<Version>3.0.1</Version>
+		<Version>4.0.0</Version>
 		<PackageReleaseNotes>
-			<![CDATA[ 
-		------------ RichCanvas v3.0.1 ------------
+			<![CDATA[
+		------------ RichCanvas v4.0.0 ------------
 			- Breaking Changes:
-			- Features:
-			- Bugfixes:
-				- Fixed ScrollOwner null reference exception when RichCanvas is not wrapped in a ScrollViewer
+				- Migrated from WPF to Uno Platform (WinUI 3 API surface)
+				- Base class changed from MultiSelector to ItemsControl
+				- IScrollInfo removed; custom scroll management via ScrollViewer
+				- RoutedCommands replaced with ICommand / XamlUICommand
+				- InputGesture system replaced with custom pointer-based gesture matching
+				- Mouse/Keyboard static APIs replaced with pointer event APIs
+				- Routed events replaced with standard CLR events
+				- Newtonsoft.Json replaced with System.Text.Json
+				- GeometryHitTest replaced with bounds-intersection testing
 			]]>
 		</PackageReleaseNotes>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -35,15 +41,18 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="..\icon.png">
+		<None Include="..\icon.png" Condition="Exists('..\icon.png')">
 			<Pack>True</Pack>
 			<PackagePath></PackagePath>
 		</None>
-		<None Include="..\README.md">
+		<None Include="..\README.md" Condition="Exists('..\README.md')">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Uno.WinUI" Version="6.0.465" />
 	</ItemGroup>
 
 </Project>

@@ -1,57 +1,75 @@
-﻿using System.Windows.Automation.Peers;
-using System.Windows.Automation.Provider;
-
-using Newtonsoft.Json;
+using System.Text.Json;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 
 using RichCanvas.Automation.ControlInformations;
 
 namespace RichCanvas.Automation
 {
     /// <summary>
-    /// Exposes the <see cref="RichCanvasContainer"/> to UI Automation project.
+    /// Exposes the <see cref="RichCanvasContainer"/> to UI Automation.
     /// </summary>
-    public class RichCanvasContainerAutomationPeer : SelectorItemAutomationPeer, IValueProvider
+    /// <remarks>
+    /// [WPF Migration] Key changes:
+    /// - Base class changed from SelectorItemAutomationPeer to ItemAutomationPeer
+    ///   since RichCanvas now inherits from ItemsControl instead of Selector.
+    /// TODO: [WPF Migration] ItemAutomationPeer.ItemsControlAutomationPeer, Item, and the constructor
+    /// are not fully implemented in Uno Platform. This peer will compile but may not function
+    /// on all Uno targets. Consider simplifying to FrameworkElementAutomationPeer if automation
+    /// is not required on non-Windows platforms.
+    /// - Newtonsoft.Json replaced with System.Text.Json.
+    /// </remarks>
+    public class RichCanvasContainerAutomationPeer : ItemAutomationPeer, IValueProvider
     {
         /// <summary>
-        /// Gets the <see cref="RichCanvas"/> that is associated with this <see cref="RichCanvasContainerAutomationPeer"/>.
+        /// Gets the <see cref="RichCanvas"/> that is associated with this peer.
         /// </summary>
         protected RichCanvas OwnerRichCanvas => (RichCanvas)ItemsControlAutomationPeer.Owner;
 
         /// <summary>
-        /// Gets the <see cref="RichCanvasContainer"/> that is associated with this <see cref="RichCanvasContainerAutomationPeer"/>.
+        /// Gets the <see cref="RichCanvasContainer"/> that is associated with this peer.
         /// </summary>
-        protected RichCanvasContainer Container => (RichCanvasContainer)OwnerRichCanvas.ItemContainerGenerator.ContainerFromItem(Item);
+        protected RichCanvasContainer? Container => OwnerRichCanvas.ContainerFromItem(Item);
 
         /// <summary>
         /// Gets the serialized json value of <see cref="RichCanvasContainerData"/> containing data about the associated <see cref="RichCanvasContainer"/>.
         /// </summary>
-        public string Value => JsonConvert.SerializeObject(new RichCanvasContainerData
+        public string Value
         {
-            Top = Container.Top,
-            Left = Container.Left,
-            IsSelected = Container.IsSelected,
-            ScaleX = Container.ScaleTransform?.ScaleX ?? -1,
-            ScaleY = Container.ScaleTransform?.ScaleY ?? -1,
-            DataContextType = Container.DataContext.GetType()
-        });
+            get
+            {
+                var container = Container;
+                if (container == null) return "{}";
+
+                return JsonSerializer.Serialize(new RichCanvasContainerData
+                {
+                    Top = container.Top,
+                    Left = container.Left,
+                    IsSelected = container.IsSelected,
+                    ScaleX = container.ScaleTransform?.ScaleX ?? -1,
+                    ScaleY = container.ScaleTransform?.ScaleY ?? -1,
+                    DataContextType = container.DataContext?.GetType()
+                });
+            }
+        }
 
         /// <inheritdoc/>
         public bool IsReadOnly => true;
 
         /// <summary>
-        /// Initializes a new <see cref="RichCanvasContainerAutomationPeer"/> for a <see cref="RichCanvasContainer"/> in <see cref="RichCanvas"/>.Items collection.
+        /// Initializes a new <see cref="RichCanvasContainerAutomationPeer"/>.
         /// </summary>
-        /// <param name="item">The data item associated with a <see cref="RichCanvasContainer"/> inside a <see cref="RichCanvas"/></param>
-        /// <param name="itemsControlAutomationPeer">Owner <see cref="RichCanvasAutomationPeer"/></param>
-        public RichCanvasContainerAutomationPeer(object item, SelectorAutomationPeer itemsControlAutomationPeer) : base(item, itemsControlAutomationPeer)
+        /// <param name="item">The data item associated with a <see cref="RichCanvasContainer"/>.</param>
+        /// <param name="itemsControlAutomationPeer">Owner <see cref="RichCanvasAutomationPeer"/>.</param>
+        public RichCanvasContainerAutomationPeer(object item, ItemsControlAutomationPeer itemsControlAutomationPeer) : base(item, itemsControlAutomationPeer)
         {
         }
 
         /// <inheritdoc/>
-        public override object GetPattern(PatternInterface patternInterface) => patternInterface switch
+        protected override object GetPatternCore(PatternInterface patternInterface) => patternInterface switch
         {
             PatternInterface.Value => this,
-            _ => base.GetPattern(patternInterface)
+            _ => base.GetPatternCore(patternInterface)
         };
 
         /// <inheritdoc/>

@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 
 namespace RichCanvas.Automation.ControlInformations
 {
     /// <summary>
-    /// Data transfer object exposing <see cref="RichCanvasContainer"/> information to UI Automation proejct.
+    /// Data transfer object exposing <see cref="RichCanvasContainer"/> information to UI Automation.
     /// </summary>
     public class RichCanvasContainerData
     {
@@ -28,12 +28,12 @@ namespace RichCanvas.Automation.ControlInformations
         public bool IsSelected { get; set; }
 
         /// <summary>
-        /// <see cref="RichCanvasContainer.Scale"/> property value.
+        /// <see cref="RichCanvasContainer.Scale"/> property value (X component).
         /// </summary>
         public double ScaleX { get; set; }
 
         /// <summary>
-        /// <see cref="RichCanvasContainer.Scale"/> property value.
+        /// <see cref="RichCanvasContainer.Scale"/> property value (Y component).
         /// </summary>
         public double ScaleY { get; set; }
     }

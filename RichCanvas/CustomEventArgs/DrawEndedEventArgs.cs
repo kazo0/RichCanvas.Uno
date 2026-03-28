@@ -1,9 +1,9 @@
-﻿using System.Windows;
+using Windows.Foundation;
 
 namespace RichCanvas.CustomEventArgs
 {
     /// <summary>
-    /// Arguments for the <see cref="RichCanvas.DrawingEnded"/> routed event.
+    /// Arguments for the <see cref="RichCanvas.DrawingEnded"/> event.
     /// </summary>
     public class DrawEndedEventArgs
     {

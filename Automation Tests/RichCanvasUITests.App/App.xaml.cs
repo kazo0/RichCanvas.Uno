@@ -1,25 +1,21 @@
-﻿using System;
-using System.Windows;
+using System;
+using Microsoft.UI.Xaml;
 
 namespace RichCanvasUITests.App
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
+        private Window? _window;
+
         public App()
         {
-            DispatcherUnhandledException += OnUnhandledException;
+            this.InitializeComponent();
         }
 
-        private void OnUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
-            MessageBoxButton button = MessageBoxButton.OK;
-            MessageBoxImage icon = MessageBoxImage.Error;
-            MessageBoxResult result;
-            Console.WriteLine(e.Exception);
-            result = MessageBox.Show(e.Exception.Message, "Error", button, icon);
+            _window = new MainWindow();
+            _window.Activate();
         }
     }
 }

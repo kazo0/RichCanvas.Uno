@@ -1,8 +1,8 @@
-﻿using RichCanvasUITests.App.States;
+using RichCanvasUITests.App.States;
 using RichCanvasUITests.App.TestMocks;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Windows.Input;
+using Windows.Foundation;
 
 namespace RichCanvasUITests.App
 {
@@ -17,8 +17,11 @@ namespace RichCanvasUITests.App
         private RelayCommand _clearAllItemsCommand;
         public ICommand ClearAllItemsCommand => _clearAllItemsCommand ??= new RelayCommand(ClearAllItems);
 
-        private RelayCommand<NotifyCollectionChangedAction> _updateItemsSourceCommand;
-        public ICommand UpdateItemsSourceCommand => _updateItemsSourceCommand ??= new RelayCommand<NotifyCollectionChangedAction>(UpdateItemsSource);
+        private RelayCommand _updateItemsSourceCommand;
+        public ICommand UpdateItemsSourceCommand => _updateItemsSourceCommand ??= new RelayCommand(MoveFirstItemToEnd);
+
+        private RelayCommand _removeFirstItemCommand;
+        public ICommand RemoveFirstItemCommand => _removeFirstItemCommand ??= new RelayCommand(RemoveFirstItem);
 
         private RelayCommand _switchItemsPositionCommand;
         public ICommand SwitchItemsPositionCommand => _switchItemsPositionCommand ??= new RelayCommand(SwitchItemsPosition);
@@ -53,15 +56,15 @@ namespace RichCanvasUITests.App
             set => SetProperty(ref _realTimeDraggingEnabled, value);
         }
 
-        private System.Windows.Point _viewportLocation;
-        public System.Windows.Point ViewportLocation
+        private Point _viewportLocation;
+        public Point ViewportLocation
         {
             get => _viewportLocation;
             set => SetProperty(ref _viewportLocation, value);
         }
 
-        private System.Windows.Size _viewportSize;
-        public System.Windows.Size ViewportSize
+        private Size _viewportSize;
+        public Size ViewportSize
         {
             get => _viewportSize;
             set => SetProperty(ref _viewportSize, value);
@@ -102,13 +105,17 @@ namespace RichCanvasUITests.App
             Items.Clear();
         }
 
-        private void UpdateItemsSource(NotifyCollectionChangedAction actionType)
+        private void MoveFirstItemToEnd()
         {
-            if (actionType == NotifyCollectionChangedAction.Move)
+            if (Items.Count > 1)
             {
                 Items.Move(0, Items.Count - 1);
             }
-            else if (actionType == NotifyCollectionChangedAction.Remove)
+        }
+
+        private void RemoveFirstItem()
+        {
+            if (Items.Count > 0)
             {
                 Items.RemoveAt(0);
             }
@@ -116,13 +123,15 @@ namespace RichCanvasUITests.App
 
         private void SwitchItemsPosition()
         {
-            // changable method to test stuff
-            Items[0] = Items[1];
+            if (Items.Count > 1)
+            {
+                Items[0] = Items[1];
+            }
         }
 
         private void PerformResetViewportLocation()
         {
-            ViewportLocation = new System.Windows.Point(0, 0);
+            ViewportLocation = new Point(0, 0);
         }
 
         private void PerformSetViewportLocationValue()
@@ -133,7 +142,7 @@ namespace RichCanvasUITests.App
         private void ResetViewportZoom()
         {
             ZoomingViewModel.ViewportZoom = 1;
-            ViewportLocation = new System.Windows.Point(0, 0);
+            ViewportLocation = new Point(0, 0);
         }
     }
 }

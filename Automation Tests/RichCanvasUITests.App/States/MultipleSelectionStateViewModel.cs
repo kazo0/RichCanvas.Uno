@@ -1,4 +1,3 @@
-﻿using RichCanvasUITests.App;
 using RichCanvasUITests.App.TestMocks;
 using System;
 using System.Linq;

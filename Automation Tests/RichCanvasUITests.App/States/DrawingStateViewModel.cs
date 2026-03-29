@@ -1,8 +1,8 @@
-﻿using RichCanvasUITests.App.Models;
+using RichCanvasUITests.App.Models;
 using RichCanvasUITests.App.TestMocks;
 using System;
-using System.Windows;
 using System.Windows.Input;
+using Windows.Foundation;
 
 namespace RichCanvasUITests.App.States
 {
@@ -38,16 +38,16 @@ namespace RichCanvasUITests.App.States
             Parent.Items.Add(DrawingStateDataMocks.DrawnRectangleMock);
         }
 
-        private RelayCommand<Type> _addEmptyItemCommand;
-        public ICommand AddEmptyItemCommand => _addEmptyItemCommand ??= new RelayCommand<Type>(AddEmptyRectangle);
+        private RelayCommand<string> _addEmptyItemCommand;
+        public ICommand AddEmptyItemCommand => _addEmptyItemCommand ??= new RelayCommand<string>(AddEmptyItem);
 
-        private void AddEmptyRectangle(Type itemType)
+        private void AddEmptyItem(string itemType)
         {
-            if (itemType == typeof(RichItemContainerModel))
+            if (itemType == "RichItemContainerModel")
             {
                 Parent.Items.Add(new RichItemContainerModel());
             }
-            else if (itemType == typeof(Line))
+            else if (itemType == "Line")
             {
                 Parent.Items.Add(new Line());
             }
@@ -67,8 +67,16 @@ namespace RichCanvasUITests.App.States
             });
         }
 
-        private RelayCommand<Direction> _addItemOutsideViewportCommand;
-        public ICommand AddItemOutsideViewportCommand => _addItemOutsideViewportCommand ??= new RelayCommand<Direction>(AddItemOutsideViewport);
+        private RelayCommand<string> _addItemOutsideViewportCommand;
+        public ICommand AddItemOutsideViewportCommand => _addItemOutsideViewportCommand ??= new RelayCommand<string>(AddItemOutsideViewportFromString);
+
+        private void AddItemOutsideViewportFromString(string directionStr)
+        {
+            if (Enum.TryParse<Direction>(directionStr, out var direction))
+            {
+                AddItemOutsideViewport(direction);
+            }
+        }
 
         private void AddItemOutsideViewport(Direction direction)
         {

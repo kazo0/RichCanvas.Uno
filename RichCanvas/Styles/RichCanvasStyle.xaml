@@ -52,9 +52,9 @@
                     <Border Background="{TemplateBinding Background}">
                         <Canvas RenderTransform="{Binding AppliedTransform, RelativeSource={RelativeSource TemplatedParent}}">
 
-                            <ItemsPresenter x:Name="PART_ItemsPresenter" />
-
-                            <Rectangle x:Name="PART_SelectionRectangle"
+							<local:RichCanvasPanel x:Name="PART_Panel"
+                                                   Extent="{Binding ItemsExtent, RelativeSource={RelativeSource TemplatedParent}}" />
+							<Rectangle x:Name="PART_SelectionRectangle"
                                        Visibility="{Binding IsSelecting, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToVisConverter}}"
                                        Canvas.Top="{Binding SelectionRectangle.Y, RelativeSource={RelativeSource TemplatedParent}}"
                                        Canvas.Left="{Binding SelectionRectangle.X, RelativeSource={RelativeSource TemplatedParent}}"
